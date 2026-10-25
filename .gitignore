@@ -31,3 +31,7 @@ playwright/.auth/
 # Editor files
 .vscode/
 .idea/
+
+# Private browser automation
+browser_agent.py
+test_brave_connection.py
