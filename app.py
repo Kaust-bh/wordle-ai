@@ -6,6 +6,13 @@ import time
 
 import streamlit as st
 
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent
+SRC_DIR = ROOT_DIR / "src"
+sys.path.insert(0, str(SRC_DIR))
+
 from wordle_ai.feedback import score_guess
 from wordle_ai.feedback_matrix import FeedbackMatrix
 from wordle_ai.strategies.entropy import rank_guesses
