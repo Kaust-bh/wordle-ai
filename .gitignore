@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.DS_Store
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Generated caches and model files
+data/cache/
+models/*
+*.npy
+*.npz
+*.pt
+*.pth
+
+# Benchmark outputs
+results/*.csv
+results/*.json
+*.log
+
+# Browser profiles and authentication
+data/brave_wordle_profile/
+playwright/.auth/
+.storage/
+
+# Editor files
+.vscode/
+.idea/

@@ -1,0 +1,2 @@
+# Core engine uses Python standard library only.
+# pytest is optional; tests also run with unittest.

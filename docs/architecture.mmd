@@ -1,0 +1,15 @@
+flowchart TD
+    A[Word lists] --> B[FeedbackMatrix]
+    B --> C[Cached feedback codes]
+    D[Candidate answers] --> E[Strategy selector]
+    C --> E
+    E --> F[Entropy ranking]
+    E --> G[Minimax ranking]
+    F --> H[Suggested guess]
+    G --> H
+    H --> I[Browser agent or Streamlit UI]
+    I --> J[Tile feedback B/Y/G]
+    J --> K[Candidate filtering]
+    K --> D
+    L[Benchmark runner] --> M[Benchmark results]
+    M --> N[Benchmark dashboard]

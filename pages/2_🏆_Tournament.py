@@ -1,0 +1,270 @@
+
+"""Tournament dashboard for Wordle AI benchmark results."""
+
+import json
+from pathlib import Path
+
+import pandas as pd
+import streamlit as st
+
+
+st.set_page_config(
+    page_title="Wordle AI Tournament",
+    page_icon="🏆",
+    layout="wide",
+)
+
+RESULTS_DIR = Path("results")
+
+
+@st.cache_data
+def load_results():
+    records = []
+
+    for path in sorted(RESULTS_DIR.glob("*.json")):
+        try:
+            with path.open("r", encoding="utf-8") as file:
+                data = json.load(file)
+
+            if not isinstance(data, dict):
+                continue
+
+            data["_file"] = path.name
+            records.append(data)
+
+        except (OSError, json.JSONDecodeError) as exc:
+            st.warning(f"Could not read {path.name}: {exc}")
+
+    return records
+
+
+st.title("🏆 Wordle AI Tournament")
+st.caption(
+    "Explore benchmark runs, compare performance, "
+    "and inspect how many guesses the solver needs."
+)
+
+records = load_results()
+
+if not records:
+    st.error(
+        "No benchmark JSON files found in results/. "
+        "Run a benchmark first."
+    )
+    st.stop()
+
+
+# --------------------------------------------------
+# Run selection
+# --------------------------------------------------
+
+run_names = [record["_file"] for record in records]
+
+selected_name = st.selectbox(
+    "Inspect benchmark run",
+    run_names,
+    index=(
+        run_names.index("entropy_1k_optimized.json")
+        if "entropy_1k_optimized.json" in run_names
+        else 0
+    ),
+)
+
+selected = next(
+    record for record in records
+    if record["_file"] == selected_name
+)
+
+
+def get_number(data, key):
+    value = data.get(key)
+    try:
+        return float(value) if value is not None else None
+    except (ValueError, TypeError):
+        return None
+
+
+# --------------------------------------------------
+# Selected run metrics
+# --------------------------------------------------
+
+st.divider()
+st.subheader(f"Run details: {selected_name}")
+
+total = selected.get("total_games")
+solved = selected.get("solved")
+failures = selected.get("failures")
+solve_rate = get_number(selected, "solve_rate")
+average = get_number(selected, "average_guesses_solved")
+runtime = get_number(selected, "benchmark_runtime_seconds")
+
+m1, m2, m3, m4 = st.columns(4)
+
+m1.metric(
+    "Games",
+    total if total is not None else "N/A",
+)
+
+m2.metric(
+    "Solved",
+    solved if solved is not None else "N/A",
+)
+
+m3.metric(
+    "Solve rate",
+    f"{solve_rate:.1%}" if solve_rate is not None else "N/A",
+)
+
+m4.metric(
+    "Average guesses",
+    f"{average:.3f}" if average is not None else "N/A",
+)
+
+m5, m6, m7 = st.columns(3)
+
+m5.metric(
+    "Failures",
+    failures if failures is not None else "N/A",
+)
+
+m6.metric(
+    "Worst-case guesses",
+    selected.get("worst_case_guesses", "N/A"),
+)
+
+m7.metric(
+    "Benchmark runtime",
+    f"{runtime:.2f} s" if runtime is not None else "N/A",
+)
+
+matrix_time = get_number(selected, "matrix_build_seconds")
+
+if matrix_time is not None:
+    st.caption(f"Feedback matrix build time: {matrix_time:.2f} seconds")
+
+
+# --------------------------------------------------
+# Guess distribution
+# --------------------------------------------------
+
+st.divider()
+st.subheader("📊 Guess distribution")
+
+distribution = selected.get("guess_count_distribution", {})
+
+if isinstance(distribution, dict) and distribution:
+    distribution_df = pd.DataFrame([
+        {
+            "Guesses required": str(turn),
+            "Games": int(count),
+        }
+        for turn, count in distribution.items()
+    ])
+
+    distribution_df["sort_key"] = pd.to_numeric(
+        distribution_df["Guesses required"],
+        errors="coerce",
+    )
+    distribution_df = distribution_df.sort_values("sort_key")
+
+    st.bar_chart(
+        distribution_df.set_index("Guesses required")[["Games"]]
+    )
+
+    st.dataframe(
+        distribution_df.drop(columns=["sort_key"]),
+        hide_index=True,
+        use_container_width=True,
+    )
+else:
+    st.info("This run does not contain a guess distribution.")
+
+
+# --------------------------------------------------
+# Compare saved runs
+# --------------------------------------------------
+
+st.divider()
+st.subheader("⚔️ Compare benchmark runs")
+
+st.write(
+    "Choose saved runs to compare their recorded metrics. "
+    "Runs may use different answer sets or configurations, "
+    "so comparisons are descriptive unless the setups match."
+)
+
+selected_runs = st.multiselect(
+    "Runs to compare",
+    run_names,
+    default=[selected_name],
+)
+
+comparison_rows = []
+
+for record in records:
+    if record["_file"] not in selected_runs:
+        continue
+
+    comparison_rows.append({
+        "Run": record["_file"],
+        "Games": record.get("total_games"),
+        "Solved": record.get("solved"),
+        "Failures": record.get("failures"),
+        "Solve rate (%)": (
+            round(float(record["solve_rate"]) * 100, 2)
+            if record.get("solve_rate") is not None
+            else None
+        ),
+        "Average guesses": record.get("average_guesses_solved"),
+        "Average all games": record.get("average_guesses_all_games"),
+        "Median guesses": record.get("median_guesses"),
+        "Worst case": record.get("worst_case_guesses"),
+        "Average seconds/game": record.get("average_runtime_seconds"),
+        "Total benchmark seconds": record.get("benchmark_runtime_seconds"),
+    })
+
+if comparison_rows:
+    comparison_df = pd.DataFrame(comparison_rows)
+
+    st.dataframe(
+        comparison_df,
+        hide_index=True,
+        use_container_width=True,
+    )
+
+    if len(comparison_df) > 1:
+        plot_df = comparison_df.dropna(
+            subset=["Average guesses"]
+        )
+
+        if not plot_df.empty:
+            st.markdown("#### Average guesses by saved run")
+            st.bar_chart(
+                plot_df.set_index("Run")[["Average guesses"]]
+            )
+
+        rate_df = comparison_df.dropna(
+            subset=["Solve rate (%)"]
+        )
+
+        if not rate_df.empty:
+            st.markdown("#### Solve rate by saved run")
+            st.bar_chart(
+                rate_df.set_index("Run")[["Solve rate (%)"]]
+            )
+else:
+    st.info("Select at least one run to compare.")
+
+
+# --------------------------------------------------
+# Raw JSON
+# --------------------------------------------------
+
+with st.expander("Inspect raw benchmark data"):
+    st.json({
+        key: value
+        for key, value in selected.items()
+        if key != "_file"
+    })
+
+st.caption("Wordle AI Arena · Historical benchmark results")
