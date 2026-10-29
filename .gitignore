@@ -18,9 +18,11 @@ models/*
 *.pt
 *.pth
 
-# Benchmark outputs
+# Benchmark outputs. Keep the small, reproducible Tournament fixtures tracked.
 results/*.csv
 results/*.json
+!results/comparison_entropy.json
+!results/comparison_minimax.json
 *.log
 
 # Browser profiles and authentication

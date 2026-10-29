@@ -1,0 +1,20 @@
+{
+  "strategy": "minimax",
+  "total_games": 100,
+  "solved": 100,
+  "failures": 0,
+  "solve_rate": 1.0,
+  "average_guesses_solved": 2.73,
+  "average_guesses_all_games": 2.73,
+  "median_guesses": 3,
+  "worst_case_guesses": 3,
+  "average_runtime_seconds": 0.26277648672000004,
+  "guess_count_distribution": {
+    "2": 27,
+    "3": 73
+  },
+  "benchmark_runtime_seconds": 26.278334750000003,
+  "matrix_build_seconds": 0.009266207999999998,
+  "answers_file": "data/answers_100.txt",
+  "guesses_file": "data/allowed_guesses.txt"
+}
