@@ -1,2 +1,7 @@
 # Core engine uses Python standard library only.
 # pytest is optional; tests also run with unittest.
+numpy
+pandas
+streamlit
+streamlit-keyup>=1.0.0
+typing_extensions
